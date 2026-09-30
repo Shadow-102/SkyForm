@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>SkyForm: modern fighter aircraft</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,300..800&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* DESIGN SYSTEM: titanium ramp + one signal hue; Archivo (headings) + IBM Plex Mono (data); 4px spacing scale */
+:root{
+  --ink:#050607; --ti-900:#0c0e10; --ti-800:#15191d; --ti-700:#232930; --ti-500:#5b6670; --ti-300:#9aa5ae; --ti-100:#e3e8ec; --sig:#9cc3e6;
+  --sans:"Archivo","Helvetica Neue",Arial,sans-serif; --mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+  --s1:4px; --s2:8px; --s3:12px; --s4:16px; --s6:24px; --s8:32px; --s12:48px; --s16:64px; --s24:96px;
+  --ease:cubic-bezier(.16,1,.3,1); --ease-io:cubic-bezier(.65,0,.35,1);
+  box-sizing:border-box; padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+:root:not([data-theme="light"]){color-scheme:dark}
+*,*::before,*::after{box-sizing:inherit}
+html{scroll-padding-top:env(safe-area-inset-top,0px);scroll-behavior:smooth}
+body{margin:0;background:var(--ink);color:var(--ti-100);font:400 16px/1.6 var(--sans);-webkit-font-smoothing:antialiased;overflow-x:hidden}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;padding:0}
+:focus-visible{outline:1px solid var(--sig);outline-offset:4px}
+
+/* Photo stack: each layer scales 1.05 to 1.0 while crossfading over 1200ms */
+.photos{position:fixed;inset:-10% 0;z-index:0;will-change:transform}
+.photo{position:absolute;inset:0;margin:0;opacity:0;transform:scale(1.05);transition:opacity 1.2s var(--ease-io),transform 1.2s var(--ease);
+  background:var(--img,linear-gradient(#0000,#0000)) center/cover,
+  radial-gradient(70% 55% at 72% 32%,hsl(var(--h) 28% 30%),transparent 70%),
+  radial-gradient(50% 40% at 20% 80%,hsl(var(--h) 20% 16%),transparent 70%),linear-gradient(#0c0e10,#050607)}
+.photo.on{opacity:1;transform:scale(1)}
+.scrim{position:fixed;inset:0;z-index:1;pointer-events:none;background:linear-gradient(90deg,#050607e6 0,#0506078c 45%,#0506074d),linear-gradient(0deg,#050607 0,transparent 55%),rgba(5,6,7,var(--dim,.2))}
+
+/* Upper deck: wordmark + CSS radar */
+header{position:fixed;top:0;left:0;right:0;z-index:20;display:flex;justify-content:space-between;align-items:center;padding:calc(var(--s4) + env(safe-area-inset-top,0px)) var(--s8) var(--s4) 72px;pointer-events:none}
+.brand{display:flex;align-items:center;gap:var(--s3)}
+.mark{font:600 20px var(--sans);font-stretch:118%;font-variation-settings:"wdth" 118;letter-spacing:-.02em}
+.hint{font:400 12px var(--mono);color:var(--ti-500)}
+.radar{position:relative;width:44px;height:44px;border-radius:50%;border:1px solid var(--ti-700);overflow:hidden;
+  background:radial-gradient(circle,transparent 0 30%,var(--ti-700) 30.5% 31.5%,transparent 32% 62%,var(--ti-700) 62.5% 63.5%,transparent 64%),linear-gradient(var(--ti-700),var(--ti-700)) center/1px 100% no-repeat,linear-gradient(var(--ti-700),var(--ti-700)) center/100% 1px no-repeat,rgba(5,6,7,.6)}
+.radar::before{content:"";position:absolute;inset:0;border-radius:50%;background:conic-gradient(from 0deg,transparent 0 280deg,rgba(156,195,230,.28) 350deg,var(--sig) 360deg);animation:spin 4s linear infinite}
+.radar i{position:absolute;left:var(--x);top:var(--y);width:3px;height:3px;border-radius:50%;background:var(--sig);box-shadow:0 0 6px 1px var(--sig);opacity:0;animation:blip var(--t) ease-in-out var(--dl) infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes blip{0%,100%{opacity:0;transform:scale(.4)}12%{opacity:1;transform:scale(1)}45%{opacity:0;transform:scale(1.4)}}
+
+/* Side rail */
+.rail{position:fixed;left:0;top:0;bottom:0;z-index:30;width:56px;display:flex;flex-direction:column;justify-content:center;gap:var(--s1);padding-left:var(--s4);transition:width .5s var(--ease),background .5s var(--ease)}
+.rail:hover,.rail:focus-within{width:288px;background:linear-gradient(90deg,#050607f2 60%,transparent)}
+.rail button{display:flex;align-items:center;gap:var(--s3);height:32px;color:var(--ti-500);font:400 12px var(--mono);white-space:nowrap;transition:color .3s;will-change:transform}
+.rail button:hover,.rail button[aria-current=true]{color:var(--ti-100)}
+.rail .gap{margin-top:var(--s4)}
+.xh{position:relative;flex:none;width:16px;height:16px}
+.xh::before,.xh::after{content:"";position:absolute;background:currentColor;transition:transform .5s var(--ease),opacity .3s}
+.xh::before{left:0;right:0;top:7px;height:1px}.xh::after{top:0;bottom:0;left:7px;width:1px}
+.xh i{position:absolute;inset:3px;border:1px solid var(--sig);border-radius:50%;opacity:0;transform:scale(.3);transition:transform .5s var(--ease),opacity .4s}
+.rail button:not([aria-current=true]) .xh::before,.rail button:not([aria-current=true]) .xh::after{transform:scale(.3);opacity:.7}
+.rail button[aria-current=true] .xh i{opacity:1;transform:scale(1)}
+.rail button[aria-current=true] .xh{color:var(--sig)}
+.lab{opacity:0;transform:translateX(-8px);transition:opacity .4s var(--ease),transform .5s var(--ease)}
+.rail:hover .lab,.rail:focus-within .lab{opacity:1;transform:none}
+
+/* Profile */
+#c{position:relative;z-index:10;padding-left:56px;transition:opacity .28s var(--ease-io),filter .28s var(--ease-io)}
+#c.out{opacity:0;filter:blur(6px)}
+.hero{min-height:100svh;display:flex;flex-direction:column;justify-content:flex-end;padding:var(--s24) var(--s8) var(--s16) var(--s16)}
+h1{margin:0;font-weight:600;font-variation-settings:"wdth" 118;font-size:clamp(44px,9vw,132px);line-height:.92;letter-spacing:-.03em;max-width:12ch}
+.focus{margin:var(--s6) 0 0;max-width:46ch;font-size:clamp(18px,2vw,24px);line-height:1.35;font-weight:300}
+.meta{margin:var(--s4) 0 0;font:400 12px var(--mono);color:var(--ti-300);display:flex;gap:var(--s6);flex-wrap:wrap}
+.slot{position:absolute;right:var(--s8);bottom:var(--s16);font:400 11px var(--mono);color:var(--ti-500);max-width:32ch;text-align:right}
+.body{padding:0 var(--s8) var(--s24) var(--s16);display:grid;gap:var(--s6);max-width:1240px}
+.panel{background:rgba(16,19,22,.55);-webkit-backdrop-filter:blur(18px) saturate(1.2);backdrop-filter:blur(18px) saturate(1.2);border:1px solid rgba(154,165,174,.14);padding:var(--s8);opacity:0;transform:translateY(28px);filter:blur(8px);transition:opacity 1s var(--ease),transform 1s var(--ease),filter 1s var(--ease)}
+.panel.in{opacity:1;transform:none;filter:none}
+h2{margin:0 0 var(--s6);font:500 14px var(--mono);color:var(--ti-300)}
+.specs{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:var(--s8) 0}
+.spec{padding:0 var(--s4);border-left:1px solid var(--ti-700);opacity:0;transform:translateY(12px);transition:opacity .8s var(--ease),transform .8s var(--ease);transition-delay:calc(var(--i)*50ms + 150ms)}
+.in .spec{opacity:1;transform:none}
+.spec .l{font-size:13px;color:var(--ti-300)}
+.spec .v{font:500 clamp(26px,3vw,38px)/1.15 var(--mono);letter-spacing:-.02em;margin-top:var(--s1);font-variant-numeric:tabular-nums}
+.spec .v small{font-size:13px;color:var(--sig);margin-left:var(--s2);letter-spacing:0}
+.spec .t{font-size:.72em}
+.spec .s{font:400 11px/1.4 var(--mono);color:var(--ti-500);margin-top:var(--s1)}
+.two{display:grid;grid-template-columns:1fr;gap:var(--s6)}
+@media(min-width:960px){.two{grid-template-columns:minmax(0,6fr) minmax(0,5fr)}}
+.ov{margin:0 0 var(--s4);max-width:62ch}
+.acc button{width:100%;display:flex;justify-content:space-between;align-items:center;padding:var(--s3) 0;border-bottom:1px solid var(--ti-700);text-align:left;font-size:15px}
+.acc button::after{content:"";width:9px;height:9px;border-right:1px solid var(--sig);border-bottom:1px solid var(--sig);transform:rotate(45deg) translate(-2px,-2px);transition:transform .5s var(--ease)}
+.acc button[aria-expanded=true]::after{transform:rotate(225deg) translate(-2px,-2px)}
+.drop{display:grid;grid-template-rows:0fr;transition:grid-template-rows .6s var(--ease)}
+.drop.open{grid-template-rows:1fr}
+.drop>div{overflow:hidden}
+dl{margin:0;padding:var(--s3) 0 var(--s4);display:grid;grid-template-columns:minmax(96px,30%) 1fr;gap:var(--s2) var(--s4);font:400 13px/1.5 var(--mono)}
+dt{color:var(--ti-500)}dd{margin:0;color:var(--ti-100)}
+.ov-d dl{padding:0;border-top:1px solid var(--ti-700);padding-top:var(--s4);grid-template-columns:minmax(96px,24%) 1fr;font-family:var(--sans);font-size:14px}
+footer{display:flex;justify-content:space-between;gap:var(--s6);flex-wrap:wrap;align-items:flex-end;padding-top:var(--s8)}
+.note{font:400 11px/1.6 var(--mono);color:var(--ti-500);max-width:58ch;margin:0}
+.ln{position:relative;display:inline-block;padding:var(--s2) 0;font-size:15px}
+.ln::after{content:"";position:absolute;left:0;right:0;bottom:0;height:1px;background:var(--sig);transform:scaleX(0);transform-origin:right;transition:transform .6s var(--ease)}
+.ln:hover::after,.ln:focus-visible::after{transform:scaleX(1);transform-origin:left}
+.mag{display:inline-block;will-change:transform}
+
+/* Airshows and tarmac mobility */
+.ops{position:relative;z-index:10;padding:var(--s24) var(--s8) var(--s24) 120px;background:linear-gradient(transparent,var(--ink) 18%);display:grid;gap:var(--s16);max-width:1400px}
+.ops h3{margin:0 0 var(--s2);font:600 clamp(28px,4vw,48px)/1 var(--sans);font-variation-settings:"wdth" 112;letter-spacing:-.02em}
+.ops .sub{margin:0 0 var(--s8);color:var(--ti-300);max-width:56ch}
+.tl{position:relative;display:grid;gap:var(--s4);padding-left:var(--s8)}
+.tl::before{content:"";position:absolute;left:5px;top:8px;bottom:8px;width:1px;background:var(--ti-700)}
+.ev{position:relative}
+.ev::before{content:"";position:absolute;left:calc(-1*var(--s8) + 1px);top:var(--s8);width:9px;height:9px;border-radius:50%;background:var(--ink);border:1px solid var(--sig)}
+.ev.done::before{border-color:var(--ti-500)}
+.ev .d{font:500 13px var(--mono);color:var(--sig)}
+.ev.done .d{color:var(--ti-500)}
+.ev h4{margin:var(--s1) 0;font:500 20px/1.25 var(--sans)}
+.ev .p{margin:0;color:var(--ti-300);font-size:14px}
+.chips{display:flex;flex-wrap:wrap;gap:var(--s2);margin-top:var(--s4)}
+.chips span{font:400 11px var(--mono);padding:var(--s1) var(--s3);border:1px solid var(--ti-700);color:var(--ti-100)}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:var(--s6)}
+.sc h4{margin:0;font:500 20px var(--sans)}
+.sc .tag{margin:var(--s1) 0 var(--s6);font:400 12px var(--mono);color:var(--ti-500)}
+.sc .row{display:flex;justify-content:space-between;align-items:baseline;padding:var(--s3) 0;border-top:1px solid var(--ti-700)}
+.sc .row span{font-size:13px;color:var(--ti-300)}
+.sc .row b{font:500 22px var(--mono);font-variant-numeric:tabular-nums}
+.sc .row small{font-size:12px;color:var(--sig);margin-left:var(--s2)}
+.sc .note{margin-top:var(--s4)}
+@media(max-width:700px){.hero{padding:var(--s24) var(--s4) var(--s12) var(--s6)}.body{padding:0 var(--s4) var(--s16) var(--s6)}.panel{padding:var(--s6) var(--s4)}.slot,.hint{display:none}header{padding-left:64px}.ops{padding:var(--s16) var(--s4) var(--s16) 72px}}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{transition-duration:.01ms!important;transition-delay:0s!important;animation:none!important}.panel,.spec{opacity:1;transform:none;filter:none}.radar i{opacity:.8}}
+</style>
+</head>
+<body>
+<div class="photos" id="photos" aria-hidden="true"></div>
+<div class="scrim"></div>
+<header>
+  <div class="brand">
+    <div class="radar" aria-hidden="true">
+      <i style="--x:28px;--y:9px;--t:5.3s;--dl:0s"></i><i style="--x:11px;--y:15px;--t:7.1s;--dl:1.7s"></i>
+      <i style="--x:31px;--y:30px;--t:6.2s;--dl:3.1s"></i><i style="--x:17px;--y:32px;--t:8.4s;--dl:.9s"></i>
+    </div>
+    <span class="mark">SkyForm</span>
+  </div>
+  <span class="hint">Left and right arrow keys switch aircraft</span>
+</header>
+<nav class="rail" id="rail" aria-label="Sections"></nav>
+<main id="c"></main>
+<section class="ops" id="ops">
+  <div id="air"><h3>Airshows</h3><p class="sub">Where to see these aircraft fly. Lineups are based on past editions unless marked confirmed.</p><div class="tl" id="tl"></div></div>
+  <div id="mob"><h3>Tarmac mobility</h3><p class="sub">Three electric scooters for covering a large airshow site quickly.</p><div class="cards" id="cards"></div>
+    <p class="note" style="margin-top:24px">Airshow flight lines are restricted. Check with the organizer before bringing any vehicle airside. Specs are manufacturer claims; real range depends on speed, load and temperature.</p></div>
+</section>
+
+<script>
+/* MOTION SPEC
+   Panel cascade     : 1000ms expo-out (.16,1,.3,1), y 28 to 0, blur 8 to 0; 50ms between panels, 50ms between spec cells
+   Photo crossfade   : 1200ms opacity (.65,0,.35,1) plus scale 1.05 to 1.0 (1200ms expo-out)
+   Content switch    : 280ms out, swap, 280ms in
+   Count-up          : 1600ms easeOutExpo on reveal
+   Magnetic hover    : spring, stiffness .14, damping .8 (overshoots slightly, then settles); pull .25x / .35x cursor offset
+   Parallax          : photo layer translateY = scrollY * -0.12
+   Radar             : 4s linear sweep; 4 blips, 5.3 to 8.4s cycles, offset delays
+   IMAGES            : drop files in assets/jets/<id>.jpg (see README steps); gradients show if a file is missing */
+const LB=['Top speed','Combat radius','Service ceiling','Engine thrust','Max takeoff weight','Thrust-to-weight','First flight','Hardpoints','Radar cross-section'];
+const J=[
+{id:'f35',n:'F-35 Lightning II',m:'Lockheed Martin, United States',g:'5th generation',r:'Stealth multirole',f:'Sensor fusion and stealth',h:210,
+ img:'Front-angle atmospheric shot of an F-35A over cloud tops at dusk',
+ s:[[1.6,'Mach',1,'about 1,960 km/h'],[1093,'km',0,'internal fuel, F-35A'],[15240,'m',0,'50,000 ft'],[191,'kN',0,'1 x F135, afterburning'],[31800,'kg',0,'70,000 lb']],
+ ff:2006,hp:[10,'4 internal, 6 external'],rcs:'≈0.001 m²',
+ ov:'The F-35 merges its AESA radar, electro-optical targeting and six-camera distributed aperture system into one fused picture, then shares it across the formation. Low-observable shaping and internal bays keep its signature small, so one aircraft can find, track and engage targets before it is detected.',
+ dv:'Born from the Joint Strike Fighter program, where Lockheed\'s X-35 won in 2001. One design, three variants: A (runway), B (short takeoff, vertical landing), C (carrier).',
+ nb:'Israel reported the first combat use of the F-35I in May 2018.',
+ av:[['Radar','AN/APG-81 AESA'],['Electro-optical','AN/AAQ-40 EOTS, AN/AAQ-37 DAS'],['EW suite','AN/ASQ-239 Barracuda'],['Gun','GAU-22/A 25 mm']],
+ ar:[['Stations','4 internal, 6 external pylons'],['Payload','about 8,160 kg (18,000 lb)'],['Air-to-air','AIM-120 AMRAAM, AIM-9X'],['Air-to-ground','JDAM, SDB, JSM']]},
+{id:'gripen-e',n:'Saab JAS 39 Gripen E',m:'Saab, Sweden',g:'4.5 generation',r:'Multirole, dispersed operations',f:'Electronic warfare and short-runway capability',h:150,
+ img:'Low-angle Gripen E on a forest road base, morning mist',
+ s:[[2.0,'Mach',1,'about 2,470 km/h at altitude'],[1500,'km',0,'configuration dependent'],[15240,'m',0,'50,000 ft'],[98,'kN',0,'1 x F414-GE-39E, afterburning'],[16500,'kg',0,'36,400 lb']],
+ ff:2017,hp:[10,'weapon stations'],rcs:'≈0.1 to 1 m²',
+ ov:'Saab built the Gripen E to be flown and maintained from dispersed road bases, taking off and landing in roughly 800 m. Its Arexis electronic warfare suite, repositionable Raven AESA radar and IRST give it a strong sensor and self-protection package, with open architecture for fast updates.',
+ dv:'The E model is a major redesign of the Gripen C/D that first flew in 1988: bigger airframe, F414 engine, new sensors. First flight of the E was in 2017.',
+ nb:'Sweden flew eight Gripen C fighters in NATO\'s 2011 Libya operation.',
+ av:[['Radar','Raven ES-05 AESA, repositionable'],['IRST','Skyward-G'],['EW suite','Arexis'],['Gun','Mauser BK-27 27 mm']],
+ ar:[['Stations','10 weapon stations'],['Payload','about 6,500 kg'],['Air-to-air','Meteor, IRIS-T, AIM-9'],['Strike','Taurus KEPD 350']]},
+{id:'f22',n:'F-22 Raptor',m:'Lockheed Martin, United States',g:'5th generation',r:'Air superiority',f:'Air superiority and supercruise',h:225,
+ img:'Side-profile F-22 in a vertical climb against a dark stratospheric sky',
+ s:[[2.25,'Mach',2,'supercruise about Mach 1.5'],[850,'km',0,'clean, with 185 km supercruise'],[19800,'m',0,'65,000 ft'],[312,'kN',0,'2 x F119-PW-100, afterburning'],[37870,'kg',0,'83,500 lb']],
+ ff:1997,hp:[4,'external, plus 3 internal bays'],rcs:'≈0.0001 to 0.001 m²',
+ ov:'The F-22 cruises supersonically without afterburner, flies higher than most opponents and carries a very low radar signature. Integrated sensors let the pilot shoot first, and two-dimensional thrust vectoring keeps it agile where the air is thin.',
+ dv:'Winner of the Advanced Tactical Fighter competition in 1991 (YF-22 over YF-23). In US Air Force service since 2005; production ended in 2011 after 195 aircraft.',
+ nb:'First combat missions were strikes on Islamic State targets in Syria, September 2014.',
+ av:[['Radar','AN/APG-77 AESA'],['Passive sensing','AN/ALR-94 warning system'],['Datalink','IFDL, intra-flight'],['Gun','M61A2 20 mm']],
+ ar:[['Internal bays','6 x AIM-120, 2 x AIM-9X'],['Strike','2 x 1,000 lb JDAM or 8 x SDB'],['External','4 wing pylons, fuel tanks'],['Payload','internal carriage by default']]},
+{id:'mig29',n:'MiG-29 Fulcrum',m:'Mikoyan, Soviet Union and Russia',g:'4th generation',r:'Air superiority, close combat',f:'Twin-engine maneuverability and legacy',h:30,
+ img:'Head-on MiG-29 with afterburners lit, hard bank at low altitude',
+ s:[[2.25,'Mach',2,'about 2,400 km/h at altitude'],[710,'km',0,'air-to-air, internal fuel'],[18000,'m',0,'59,000 ft'],[163,'kN',0,'2 x RD-33, afterburning'],[18500,'kg',0,'40,800 lb']],
+ ff:1977,hp:[6,'under-wing pylons'],rcs:'≈5 m²',
+ ov:'Two RD-33 engines and a blended wing-body give the MiG-29 exceptional low-speed handling. A helmet-mounted sight paired with R-73 missiles made it formidable in a turning fight, and dozens of air forces still fly it.',
+ dv:'Designed in the 1970s as the Soviet answer to the F-15 and F-16. First flight 1977, service entry in the early 1980s, then exported worldwide.',
+ nb:'Flown in combat by Iraq in 1991 and Serbia in 1999; its close-combat edge was its helmet sight and R-73.',
+ av:[['Radar','N019 Sapfir-29 pulse-Doppler'],['IRST','OLS-29 with laser rangefinder'],['Helmet sight','Shchel-3UM'],['Gun','GSh-30-1 30 mm']],
+ ar:[['Stations','6 under-wing pylons'],['Payload','about 3,000 kg'],['Air-to-air','R-73, R-27, R-60'],['Strike','unguided rockets, bombs']]},
+{id:'su57',n:'Su-57 Felon',m:'Sukhoi, Russia',g:'5th generation',r:'Air superiority, strike',f:'Thrust-vectoring agility and payload',h:190,
+ img:'Su-57 in a high-angle maneuver, nozzles deflected, against storm light',
+ s:[[2.0,'Mach',1,'about 2,100 km/h, OEM stated'],[1250,'km',0,'est., internal fuel'],[20000,'m',0,'65,600 ft'],[294,'kN',0,'2 x Izdeliye 117, est.'],[35000,'kg',0,'77,200 lb']],
+ ff:2010,hp:[12,'est., internal and external'],rcs:'≈0.1 to 1 m²',
+ ov:'The Su-57 combines a stealth-shaped airframe with three-dimensional thrust-vectoring engines and large internal bays. Vectored nozzles and all-moving tail surfaces sustain high-angle maneuvering while carrying several tonnes of weapons.',
+ dv:'Grew out of the PAK FA program. First flight January 2010; first production aircraft reached Russian forces in December 2020.',
+ nb:'Russia says Su-57s have flown combat sorties over Ukraine; independent verification is limited.',
+ av:[['Radar','N036 Byelka AESA, L-band arrays'],['Electro-optical','101KS suite'],['Gun','GSh-30-1 30 mm'],['Flight control','3D thrust vectoring']],
+ ar:[['Bays','2 main, 2 side internal'],['Payload','about 7,400 kg, est.'],['Air-to-air','R-77M, R-74M'],['Strike','Kh-59MK2']]},
+{id:'rafale',n:'Dassault Rafale',m:'Dassault Aviation, France',g:'4.5 generation',r:'Omnirole, carrier capable',f:'Omnirole capability and nuclear deterrence',h:25,
+ img:'Rafale M launching from a carrier deck at first light',
+ s:[[1.8,'Mach',1,'about 1,910 km/h at altitude'],[1850,'km',0,'OEM, strike configuration'],[15235,'m',0,'50,000 ft'],[150,'kN',0,'2 x M88-2, afterburning'],[24500,'kg',0,'54,000 lb']],
+ ff:1986,hp:[14,'13 on Rafale M'],rcs:'≈1 m²',
+ ov:'Air defense, deep strike, reconnaissance and carrier operations from one airframe, often in a single sortie. The delta-canard layout, SPECTRA self-protection and OSF infrared search and track support that range, and it carries the ASMP-A nuclear missile for the French airborne deterrent.',
+ dv:'France left the Eurofighter consortium and built the Rafale A demonstrator, which flew in 1986. Operational service began in 2001 with the French Navy.',
+ nb:'Flew from the opening days of the 2011 Libya campaign and in Mali in 2013.',
+ av:[['Radar','RBE2-AA AESA'],['EW suite','SPECTRA'],['IRST','OSF, optronic'],['Gun','GIAT 30/719B 30 mm']],
+ ar:[['Stations','14 (13 on Rafale M)'],['Payload','about 9,500 kg'],['Air-to-air','Meteor, MICA'],['Strike','SCALP-EG, AASM Hammer, Exocet, ASMP-A nuclear']]},
+{id:'typhoon',n:'Eurofighter Typhoon',m:'Eurofighter GmbH, UK, Germany, Italy, Spain',g:'4.5 generation',r:'Air superiority, swing role',f:'High-altitude interception and delta-wing agility',h:200,
+ img:'Typhoon in steep climb, afterburners lit, contrail against deep blue',
+ s:[[2.0,'Mach',1,'about 2,490 km/h at altitude'],[1390,'km',0,'air-to-air, external tanks'],[16760,'m',0,'55,000 ft'],[180,'kN',0,'2 x EJ200, afterburning'],[23500,'kg',0,'51,800 lb']],
+ ff:1994,hp:[13,'weapon and fuel stations'],rcs:'≈0.5 to 1 m²',
+ ov:'A delta-canard twin-engine fighter built for supersonic interception and air dominance. Its high thrust-to-weight ratio delivers fast climb and acceleration, and an unstable airframe under digital flight control gives it sharp handling. The Captor-E AESA is bringing the fleet up to date.',
+ dv:'Conceived as a four-nation European fighter. The first prototype flew in 1994 and service entry followed in the early 2000s.',
+ nb:'RAF Typhoons flew ground-attack and air-policing missions over Libya in 2011 and stand on Quick Reaction Alert across Europe.',
+ av:[['Radar','Captor-E AESA, Captor-M on earlier tranches'],['IRST','PIRATE'],['EW suite','DASS'],['Gun','Mauser BK-27 27 mm']],
+ ar:[['Stations','13 hardpoints'],['Payload','about 9,000 kg'],['Air-to-air','Meteor, IRIS-T, AMRAAM, ASRAAM'],['Strike','Storm Shadow, Brimstone, Paveway IV']]},
+{id:'j20',n:'Chengdu J-20 Mighty Dragon',m:'Chengdu Aerospace, China',g:'5th generation',r:'Long-range interception',f:'Long-range interception and stealth',h:280,
+ img:'Three-quarter J-20 in clean configuration above a high-altitude cloud layer',
+ s:[[2.0,'Mach',1,'est., unofficial'],[2000,'km',0,'est., unofficial'],[20000,'m',0,'est., 65,600 ft'],[280,'kN',0,'2 x WS-10C class, est.'],[37000,'kg',0,'est., 81,600 lb']],
+ ff:2011,hp:[6,'est., internal bays'],rcs:'≈0.01 to 0.1 m²',
+ ov:'A large twin-engine canard-delta stealth fighter optimized for long-range interception. Its size supports substantial fuel and sensor capacity, consistent with missions against tankers, airborne early warning aircraft and other high-value targets at great distance.',
+ dv:'First flew in January 2011 and was declared operational in 2017. Most published figures are outside estimates.',
+ nb:'Shown publicly at Airshow China in 2016; no confirmed combat use.',
+ av:[['Radar','Type 1475 (KLJ-7A) AESA'],['Electro-optical','EOTS-89 targeting, DAS ring'],['Gun','none'],['Datalink','not publicly documented']],
+ ar:[['Main bay','PL-15 long-range missiles'],['Side bays','PL-10 short-range missiles'],['External','fuel tanks or extra missiles'],['Payload','unpublished']]}
+];
+const A=[
+{d:'19 to 20 Sep 2026',n:'Dny NATO and Czech Air Force Days',p:'Leoš Janáček Airport, Ostrava, Czech Republic',l:['Eurofighter Typhoon (Italy, Spain)','F-16 demo teams','Tornado (Germany)','Red Arrows'],s:'Completed'},
+{d:'10 to 15 Nov 2026',n:'Airshow China',p:'Zhuhai, Guangdong, China. Public days 13 to 15 Nov',l:['J-20 (flown at recent editions)','Lineup not yet confirmed'],s:'Upcoming'},
+{d:'14 to 20 Jun 2027',n:'Paris Air Show',p:'Le Bourget, France. Public days 18 to 20 Jun',l:['Rafale','Eurofighter Typhoon','Gripen','F-35'],s:'Upcoming, lineup from past editions'},
+{d:'16 to 18 Jul 2027',n:'Royal International Air Tattoo (RIAT)',p:'RAF Fairford, Gloucestershire, United Kingdom',l:['Eurofighter Typhoon','F-35','Rafale','Gripen'],s:'Upcoming, lineup from past editions'},
+{d:'18 to 19 Sep 2027',n:'Dny NATO and Czech Air Force Days',p:'Leoš Janáček Airport, Ostrava, Czech Republic',l:['Typhoon (2026)','Gripen E (2023)','Lineup to be announced'],s:'Provisional dates'}
+];
+const S=[
+{n:'Segway GT3 Pro',t:'Flagship. Rated for private land only',v:[80,'km/h',0],r:[138,'km',0],m:[7000,'W peak',0],w:[53.1,'kg',1],x:'Dual 3,500 W hub motors, 2,160 Wh battery. Range quoted at 25 km/h.'},
+{n:'Segway GT3 E',t:'Speed-limited, long range',v:[25,'km/h',0],r:[95,'km',0],m:[2400,'W peak',0],w:[39.5,'kg',1],x:'700 W nominal, 899 Wh battery. Range quoted at 15 km/h; 75 km at 25 km/h.'},
+{n:'NIU KQi3 Max',t:'Lightest of the three',v:[25,'km/h',0],r:[65,'km',0],m:[900,'W peak',0],w:[21.1,'kg',1],x:'450 W nominal, 608 Wh battery. Some markets list up to 38 km/h unlocked.'}
+];
+const $=s=>document.querySelector(s), rm=matchMedia('(prefers-reduced-motion:reduce)').matches;
+const dl=a=>'<dl>'+a.map(x=>`<dt>${x[0]}</dt><dd>${x[1]}</dd>`).join('')+'</dl>';
+const photos=$('#photos'), rail=$('#rail'); let cur=0, busy=false;
+J.forEach((j,i)=>{
+  photos.insertAdjacentHTML('beforeend',`<figure class="photo" style="--h:${j.h};--img:url(assets/jets/${j.id}.jpg)"></figure>`);
+  rail.insertAdjacentHTML('beforeend',`<button class="mag" aria-label="${j.n}" data-i="${i}"><span class="xh"><i></i></span><span class="lab">${j.n}</span></button>`);
+});
+[['air','Airshows'],['mob','Tarmac mobility']].forEach((g,k)=>rail.insertAdjacentHTML('beforeend',`<button class="mag${k?'':' gap'}" data-go="${g[0]}"><span class="xh"><i></i></span><span class="lab">${g[1]}</span></button>`));
+$('#tl').innerHTML=A.map(e=>`<article class="panel ev${e.s==='Completed'?' done':''}"><div class="d">${e.d}</div><h4>${e.n}</h4><p class="p">${e.p}</p><div class="chips">${e.l.map(x=>`<span>${x}</span>`).join('')}</div><p class="note" style="margin-top:12px">${e.s}</p></article>`).join('');
+$('#cards').innerHTML=S.map(s=>`<article class="panel sc"><h4>${s.n}</h4><p class="tag">${s.t}</p>
+${[['Top speed',s.v],['Range',s.r],['Motor wattage',s.m],['Weight',s.w]].map(r=>`<div class="row"><span>${r[0]}</span><b><i class="n" style="font-style:normal" data-t="${r[1][0]}" data-d="${r[1][2]}">0</i><small>${r[1][1]}</small></b></div>`).join('')}
+<p class="note">${s.x}</p></article>`).join('');
+
+function view(j,i){
+  const nx=J[(i+1)%J.length], tw=(j.s[3][0]*1000/(j.s[4][0]*9.80665)).toFixed(2);
+  const cells=[...j.s.map((s,k)=>[LB[k],s[0],s[1],s[2],s[3]]),[LB[5],+tw,'',2,'thrust divided by max takeoff weight'],[LB[6],j.ff,'',0,'',1],[LB[7],j.hp[0],'',0,j.hp[1]],[LB[8],null,'',0,'outside estimate, frontal aspect']];
+  return `<section class="hero"><h1>${j.n}</h1><p class="focus">${j.f}</p>
+  <p class="meta"><span>${j.m}</span><span>${j.g}</span><span>${j.r}</span></p>
+  <div class="slot">[4K Image: ${j.img}]</div></section>
+  <div class="body">
+  <section class="panel"><h2>Telemetry and specs</h2><div class="specs">
+  ${cells.map((c,k)=>`<div class="spec" style="--i:${k}"><div class="l">${c[0]}</div><div class="v">${c[1]===null?`<span class="t">${j.rcs}</span>`:`<span class="n" data-t="${c[1]}" data-d="${c[3]}" data-g="${c[5]?0:1}">0</span><small>${c[2]}</small>`}</div><div class="s">${c[4]}</div></div>`).join('')}
+  </div></section>
+  <div class="two"><section class="panel ov-d"><h2>Tactical overview</h2><p class="ov">${j.ov}</p>${dl([['Development',j.dv],['Defining moment',j.nb]])}</section>
+  <section class="panel acc"><h2>Avionics and armament</h2>
+  <button aria-expanded="true">Sensors and electronic systems</button><div class="drop open"><div>${dl(j.av)}</div></div>
+  <button aria-expanded="false">Hardpoints and payload</button><div class="drop"><div>${dl(j.ar)}</div></div></section></div>
+  <footer><p class="note">Figures are open-source or manufacturer-stated. Values marked est. are unofficial. Radar cross-section is an outside estimate; true values are classified.</p>
+  <span class="mag"><button class="ln" data-i="${(i+1)%J.length}">Next: ${nx.n}</button></span></footer></div>`;
+}
+function count(el){
+  if(el.dataset.done)return; el.dataset.done=1;
+  const t=+el.dataset.t, d=+el.dataset.d, g=el.dataset.g!=='0', fmt=v=>v.toLocaleString('en-US',{minimumFractionDigits:d,maximumFractionDigits:d,useGrouping:g});
+  if(rm){el.textContent=fmt(t);return}
+  const st=performance.now();
+  (function f(n){const p=Math.min((n-st)/1600,1);el.textContent=fmt(p<1?t*(1-Math.pow(2,-10*p)):t);if(p<1)requestAnimationFrame(f)})(st);
+}
+/* one observer: batches reveal with a 50ms cascade */
+const obs=new IntersectionObserver(es=>es.filter(e=>e.isIntersecting).forEach((e,k)=>{
+  const t=e.target; t.style.transitionDelay=k*50+'ms'; t.classList.add('in');
+  t.querySelectorAll('.n').forEach(n=>setTimeout(()=>count(n),k*50+250)); obs.unobserve(t);
+}),{threshold:.15});
+document.querySelectorAll('.ops .panel').forEach(p=>obs.observe(p));
+function mount(i){
+  const c=$('#c'); c.innerHTML=view(J[i],i); window.scrollTo({top:0,behavior:'instant'});
+  c.querySelectorAll('.panel').forEach(p=>obs.observe(p));
+}
+function show(i,first){
+  if(busy||(i===cur&&!first))return; busy=true; cur=i;
+  document.querySelectorAll('.photo').forEach((p,k)=>p.classList.toggle('on',k===i));
+  rail.querySelectorAll('[data-i]').forEach(b=>b.setAttribute('aria-current',+b.dataset.i===i));
+  document.title=J[i].n+' | SkyForm';
+  const c=$('#c');
+  if(first){mount(i);busy=false;return}
+  c.classList.add('out');
+  setTimeout(()=>{mount(i);requestAnimationFrame(()=>{c.classList.remove('out');busy=false})},rm?0:290);
+}
+document.addEventListener('click',e=>{
+  const go=e.target.closest('[data-go]'); if(go){document.getElementById(go.dataset.go).scrollIntoView({behavior:rm?'auto':'smooth'});return}
+  const b=e.target.closest('[data-i]'); if(b){show(+b.dataset.i);return}
+  const a=e.target.closest('.acc button'); if(a){const o=a.getAttribute('aria-expanded')!=='true';a.setAttribute('aria-expanded',o);a.nextElementSibling.classList.toggle('open',o)}
+});
+document.addEventListener('keydown',e=>{
+  if(e.key==='ArrowRight')show((cur+1)%J.length); if(e.key==='ArrowLeft')show((cur+J.length-1)%J.length);
+});
+/* spring-loaded magnetic hover: pull toward cursor, overshoot slightly on release */
+const live=new Set(); let raf=0, hot=null;
+function step(){
+  live.forEach(el=>{const s=el._s;
+    s.vx=(s.vx+(s.tx-s.x)*.14)*.8; s.vy=(s.vy+(s.ty-s.y)*.14)*.8; s.x+=s.vx; s.y+=s.vy;
+    el.style.transform=`translate3d(${s.x}px,${s.y}px,0)`;
+    if(Math.abs(s.vx)+Math.abs(s.vy)+Math.abs(s.tx-s.x)+Math.abs(s.ty-s.y)<.05){s.x=s.y=s.vx=s.vy=0;el.style.transform='';live.delete(el)}});
+  raf=live.size?requestAnimationFrame(step):0;
+}
+function pull(el,tx,ty){el._s=el._s||{x:0,y:0,vx:0,vy:0,tx:0,ty:0};el._s.tx=tx;el._s.ty=ty;live.add(el);if(!raf)raf=requestAnimationFrame(step)}
+document.addEventListener('mousemove',e=>{
+  if(rm)return; const m=e.target.closest('.mag');
+  if(hot&&hot!==m){pull(hot,0,0);hot=null}
+  if(!m)return; hot=m; const r=m.getBoundingClientRect();
+  pull(m,(e.clientX-r.left-r.width/2)*.25,(e.clientY-r.top-r.height/2)*.35);
+});
+/* parallax + scrim */
+let tick=false;
+addEventListener('scroll',()=>{if(tick||rm)return;tick=true;requestAnimationFrame(()=>{
+  const y=scrollY; photos.style.transform=`translate3d(0,${y*-.12}px,0)`;
+  document.documentElement.style.setProperty('--dim',Math.min(.6,.2+y/innerHeight*.4));tick=false})},{passive:true});
+show(0,true);
+</script>
+</body>
+</html>
